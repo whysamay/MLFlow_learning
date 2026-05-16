@@ -36,8 +36,10 @@ grid_search = GridSearchCV(estimator=rf, param_grid=param_grid, cv=5, n_jobs=-1,
 # print(best_score)
 # # Till here
 
+import dagshub
+dagshub.init(repo_owner='samaypawar2200', repo_name='MLFlow_learning', mlflow=True)
 
-mlflow.set_tracking_uri("http://127.0.0.1:5000")
+mlflow.set_tracking_uri('https://dagshub.com/samaypawar2200/MLFlow_learning.mlflow')
 mlflow.set_experiment('breast-cancer-rf-hp')
 
 with mlflow.start_run() as parent:
