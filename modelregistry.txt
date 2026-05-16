@@ -1,0 +1,94 @@
+In production machine learning workflows, **MLflow Model Registry** acts as a centralized repository and management layer for your trained models.
+
+When you run your scripts locally, you save individual training runs with their metrics and parameters. However, once you find a high-performing model (like your Random Forest with 94.4% accuracy), you need a structured way to hand it over to production, version it, and track its lifecycle. That is where the Model Registry comes in.
+
+---
+
+### How the Model Registry Fits into Your Workflow
+
+Think of the Model Registry as a formal "wrapper" around your logged model artifacts.
+
+```
+[ Your MLflow Run ] 
+       │
+       └──> Logs Artifacts (Model pickle, requirements.txt, etc.)
+               │
+               └──> [ Register Model ] 
+                           │
+                           └──> Centrally Managed in Model Registry
+                                 (Tracks: Versions, Stages, Aliases)
+
+```
+
+When you register a model, you transition it from an isolated tracking artifact inside an experiment run into a distinct, version-controlled asset.
+
+---
+
+### Key Components of the Model Registry
+
+#### 1. Registered Model (The Container)
+
+A Registered Model is a unique named entity in the registry that represents a specific business use case or problem. For your current project, you might name it `"Iris-Classifier-Production"`.
+
+#### 2. Model Versioning
+
+Every time you register a model under the same name, MLflow increments its version automatically (`Version 1`, `Version 2`, etc.). This ensures full traceability; you always know exactly which code run, hyperparameters, and dataset generated a specific production model artifact.
+
+#### 3. Model Stages (Legacy Lifecycle)
+
+Traditionally, MLflow uses four mutually exclusive stages to manage a model's deployment state:
+
+* **None:** Freshly registered models.
+* **Staging:** Undergoing integration testing or quality checks.
+* **Production:** Active model serving live user requests.
+* **Archived:** Deprecated models kept only for historical records.
+
+#### 4. Model Tags and Aliases (Modern Lifecycle)
+
+In newer versions of MLflow, stages are replaced or augmented by **Aliases** (e.g., pointing a `@champion` mutable label to `Version 3` and a `@challenger` label to `Version 4`) and custom key-value **Tags** to organize deployment workflows flexibly.
+
+---
+
+### How to Implement This in Your Code
+
+To integrate the Model Registry into your current project, you only need to make minor adjustments to how you log your model.
+
+#### Method A: Register During Logging (Simplest)
+
+You can automatically register your model to the registry the moment it finishes training by adding the `registered_model_name` parameter to your logging statement:
+
+```python
+# Inside your 'with mlflow.start_run():' block
+mlflow.sklearn.log_model(
+    sk_model=rf, 
+    artifact_path="Random-Forest-Model",
+    registered_model_name="Iris-Classifier-RF" # <--- This line registers it
+)
+
+```
+
+#### Method B: Register Post-Run (Using Run ID)
+
+If you prefer to evaluate your model first and register it later after a manual sanity check, you can do it via the MLflow Client using the Run ID printed in your terminal:
+
+```python
+import mlflow
+
+# Grab the run ID from your execution logs
+run_id = "6530359954e34f818c98d30e1de4536c" 
+model_uri = f"runs:/{run_id}/Random-Forest-Model"
+
+# Register the model explicitly
+model_details = mlflow.register_model(model_uri, "Iris-Classifier-RF")
+
+```
+
+---
+
+### Managing the Model in the MLflow UI
+
+Once you execute the updated code, you can visit your local dashboard at `[http://127.0.0.1:5000](http://127.0.0.1:5000)`:
+
+1. Click on the **Models** tab in the top navigation bar.
+2. You will see your new registered model entity listed there.
+3. Click into it to inspect individual versions, assign aliases, add markdown documentation describing its performance, or transition its stage from *Staging* to *Production*.
